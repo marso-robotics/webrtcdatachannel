@@ -340,11 +340,6 @@ int stun_write(void *buf, size_t size, const stun_message_t *msg, const char *pa
 
 		uint8_t hmac[HMAC_SHA1_SIZE];
 		hmac_sha1(begin, pos - begin, key, key_len, hmac);
-		JLOG_WARN("HMAC-SHA1 write: input_len=%zu key_len=%zu tmp_hdr_len=%zu "
-		          "hmac=%02x%02x%02x%02x%02x%02x%02x%02x...",
-		          (size_t)(pos - begin), key_len, tmp_length,
-		          hmac[0], hmac[1], hmac[2], hmac[3],
-		          hmac[4], hmac[5], hmac[6], hmac[7]);
 		len = stun_write_attr(pos, end - pos, STUN_ATTR_MESSAGE_INTEGRITY, hmac, HMAC_SHA1_SIZE);
 		if (len <= 0)
 			goto overflow;
