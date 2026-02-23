@@ -21,6 +21,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if !USE_NETTLE
+#include <openssl/hmac.h>
+#include <openssl/evp.h>
+#endif
+
 #define STUN_MAGIC 0x2112A442
 #define STUN_FINGERPRINT_XOR 0x5354554E // "STUN"
 #define STUN_ATTR_SIZE sizeof(struct stun_attr)
@@ -1100,14 +1105,24 @@ bool stun_check_integrity(void *buf, size_t size, const stun_message_t *msg, con
 		static int tested = 0;
 		if (!tested) {
 			tested = 1;
-			uint8_t tv[20];
-			hmac_sha1("what do ya want for nothing?", 28, "Jefe", 4, tv);
-			char hex[41];
-			for (int i = 0; i < 20; i++) snprintf(hex + i * 2, 3, "%02x", tv[i]);
 			static const uint8_t exp[20] = {0xef,0xfc,0xdf,0x6a,0xe5,0xeb,0x2f,0xa2,0xd2,0x74,
 			                                 0x16,0xd5,0xf1,0x84,0xdf,0x9c,0x25,0x9a,0x7c,0x79};
-			JLOG_WARN("HMAC-SHA1 TEST: rfc2202=%s expected=effcdf6ae5eb2fa2d27416d5f184df9c259a7c79 %s",
-			          hex, memcmp(tv, exp, 20) == 0 ? "PASS" : "FAIL");
+			uint8_t tv1[20];
+			hmac_sha1("what do ya want for nothing?", 28, "Jefe", 4, tv1);
+			char hex1[41];
+			for (int i = 0; i < 20; i++) snprintf(hex1 + i * 2, 3, "%02x", tv1[i]);
+			JLOG_WARN("BUILD=openssl-v2 hmac_sha1()=%s %s",
+			          hex1, memcmp(tv1, exp, 20) == 0 ? "PASS" : "FAIL");
+#if !USE_NETTLE
+			uint8_t tv2[20];
+			unsigned int ml = 20;
+			HMAC(EVP_sha1(), "Jefe", 4,
+			     (const unsigned char *)"what do ya want for nothing?", 28, tv2, &ml);
+			char hex2[41];
+			for (int i = 0; i < 20; i++) snprintf(hex2 + i * 2, 3, "%02x", tv2[i]);
+			JLOG_WARN("BUILD=openssl-v2 HMAC_direct()=%s %s",
+			          hex2, memcmp(tv2, exp, 20) == 0 ? "PASS" : "FAIL");
+#endif
 		}
 	}
 	if (!msg->has_integrity)
