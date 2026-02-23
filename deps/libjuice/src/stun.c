@@ -1096,6 +1096,20 @@ int stun_read_value_mapped_address(const void *data, size_t size, addr_record_t 
 }
 
 bool stun_check_integrity(void *buf, size_t size, const stun_message_t *msg, const char *password) {
+	{
+		static int tested = 0;
+		if (!tested) {
+			tested = 1;
+			uint8_t tv[20];
+			hmac_sha1("what do ya want for nothing?", 28, "Jefe", 4, tv);
+			char hex[41];
+			for (int i = 0; i < 20; i++) snprintf(hex + i * 2, 3, "%02x", tv[i]);
+			static const uint8_t exp[20] = {0xef,0xfc,0xdf,0x6a,0xe5,0xeb,0x2f,0xa2,0xd2,0x74,
+			                                 0x16,0xd5,0xf1,0x84,0xdf,0x9c,0x25,0x9a,0x7c,0x79};
+			JLOG_WARN("HMAC-SHA1 TEST: rfc2202=%s expected=effcdf6ae5eb2fa2d27416d5f184df9c259a7c79 %s",
+			          hex, memcmp(tv, exp, 20) == 0 ? "PASS" : "FAIL");
+		}
+	}
 	if (!msg->has_integrity)
 		return false;
 
