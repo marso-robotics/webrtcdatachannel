@@ -11,7 +11,8 @@
 #if USE_NETTLE
 #include <nettle/hmac.h>
 #else
-#include "picohash.h"
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
 #endif
 
 void hmac_sha1(const void *message, size_t size, const void *key, size_t key_size, void *digest) {
@@ -21,10 +22,9 @@ void hmac_sha1(const void *message, size_t size, const void *key, size_t key_siz
 	hmac_sha1_update(&ctx, size, message);
 	hmac_sha1_digest(&ctx, HMAC_SHA1_SIZE, digest);
 #else
-	picohash_ctx_t ctx;
-	picohash_init_hmac(&ctx, picohash_init_sha1, key, key_size);
-	picohash_update(&ctx, message, size);
-	picohash_final(&ctx, digest);
+	unsigned int md_len = HMAC_SHA1_SIZE;
+	HMAC(EVP_sha1(), key, (int)key_size, (const unsigned char *)message, size,
+	     (unsigned char *)digest, &md_len);
 #endif
 }
 
@@ -35,9 +35,8 @@ void hmac_sha256(const void *message, size_t size, const void *key, size_t key_s
 	hmac_sha256_update(&ctx, size, message);
 	hmac_sha256_digest(&ctx, HMAC_SHA256_SIZE, digest);
 #else
-	picohash_ctx_t ctx;
-	picohash_init_hmac(&ctx, picohash_init_sha256, key, key_size);
-	picohash_update(&ctx, message, size);
-	picohash_final(&ctx, digest);
+	unsigned int md_len = HMAC_SHA256_SIZE;
+	HMAC(EVP_sha256(), key, (int)key_size, (const unsigned char *)message, size,
+	     (unsigned char *)digest, &md_len);
 #endif
 }

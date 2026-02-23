@@ -13,7 +13,15 @@
 #include <nettle/sha1.h>
 #include <nettle/sha2.h>
 #else
-#include "picohash.h"
+#include <openssl/evp.h>
+#endif
+
+#if !USE_NETTLE
+static void openssl_hash(const EVP_MD *md, unsigned int hash_size, const void *message, size_t size,
+                         void *digest) {
+	unsigned int len = hash_size;
+	EVP_Digest(message, size, (unsigned char *)digest, &len, md, NULL);
+}
 #endif
 
 void hash_md5(const void *message, size_t size, void *digest) {
@@ -23,10 +31,7 @@ void hash_md5(const void *message, size_t size, void *digest) {
 	md5_update(&ctx, size, message);
 	md5_digest(&ctx, HASH_MD5_SIZE, digest);
 #else
-	picohash_ctx_t ctx;
-	picohash_init_md5(&ctx);
-	picohash_update(&ctx, message, size);
-	picohash_final(&ctx, digest);
+	openssl_hash(EVP_md5(), 16, message, size, digest);
 #endif
 }
 
@@ -37,10 +42,7 @@ void hash_sha1(const void *message, size_t size, void *digest) {
 	sha1_update(&ctx, size, message);
 	sha1_digest(&ctx, HASH_SHA1_SIZE, digest);
 #else
-	picohash_ctx_t ctx;
-	picohash_init_sha1(&ctx);
-	picohash_update(&ctx, message, size);
-	picohash_final(&ctx, digest);
+	openssl_hash(EVP_sha1(), 20, message, size, digest);
 #endif
 }
 
@@ -51,9 +53,6 @@ void hash_sha256(const void *message, size_t size, void *digest) {
 	sha256_update(&ctx, size, message);
 	sha256_digest(&ctx, HASH_SHA256_SIZE, digest);
 #else
-	picohash_ctx_t ctx;
-	picohash_init_sha256(&ctx);
-	picohash_update(&ctx, message, size);
-	picohash_final(&ctx, digest);
+	openssl_hash(EVP_sha256(), 32, message, size, digest);
 #endif
 }
