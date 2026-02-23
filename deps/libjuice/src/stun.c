@@ -340,17 +340,6 @@ int stun_write(void *buf, size_t size, const stun_message_t *msg, const char *pa
 
 		uint8_t hmac[HMAC_SHA1_SIZE];
 		hmac_sha1(begin, pos - begin, key, key_len, hmac);
-		{
-			char wh[HMAC_SHA1_SIZE * 2 + 1];
-			char wk[MAX_HMAC_KEY_LEN * 2 + 1];
-			for (int i = 0; i < HMAC_SHA1_SIZE; i++)
-				snprintf(wh + i * 2, 3, "%02x", hmac[i]);
-			for (size_t i = 0; i < key_len && i < MAX_HMAC_KEY_LEN; i++)
-				snprintf(wk + i * 2, 3, "%02x", key[i]);
-			wk[key_len * 2] = '\0';
-			JLOG_WARN("HMAC-SHA1 WRITE: input_len=%zu key_len=%zu hdr=%02x%02x%02x%02x key=%s hmac=%s",
-			          pos - begin, key_len, begin[0], begin[1], begin[2], begin[3], wk, wh);
-		}
 		len = stun_write_attr(pos, end - pos, STUN_ATTR_MESSAGE_INTEGRITY, hmac, HMAC_SHA1_SIZE);
 		if (len <= 0)
 			goto overflow;
@@ -1096,20 +1085,6 @@ int stun_read_value_mapped_address(const void *data, size_t size, addr_record_t 
 }
 
 bool stun_check_integrity(void *buf, size_t size, const stun_message_t *msg, const char *password) {
-	{
-		static int tested = 0;
-		if (!tested) {
-			tested = 1;
-			uint8_t tv[20];
-			hmac_sha1("what do ya want for nothing?", 28, "Jefe", 4, tv);
-			char hex[41];
-			for (int i = 0; i < 20; i++) snprintf(hex + i * 2, 3, "%02x", tv[i]);
-			static const uint8_t exp[20] = {0xef,0xfc,0xdf,0x6a,0xe5,0xeb,0x2f,0xa2,0xd2,0x74,
-			                                 0x16,0xd5,0xf1,0x84,0xdf,0x9c,0x25,0x9a,0x7c,0x79};
-			JLOG_WARN("HMAC-SHA1 TEST: rfc2202=%s expected=effcdf6ae5eb2fa2d27416d5f184df9c259a7c79 %s",
-			          hex, memcmp(tv, exp, 20) == 0 ? "PASS" : "FAIL");
-		}
-	}
 	if (!msg->has_integrity)
 		return false;
 
@@ -1146,19 +1121,6 @@ bool stun_check_integrity(void *buf, size_t size, const stun_message_t *msg, con
 
 			const uint8_t *expected_hmac = attr->value;
 			if (const_time_memcmp(hmac, expected_hmac, HMAC_SHA1_SIZE) != 0) {
-				char computed_hex[HMAC_SHA1_SIZE * 2 + 1];
-				char expected_hex[HMAC_SHA1_SIZE * 2 + 1];
-				char key_hex[MAX_HMAC_KEY_LEN * 2 + 1];
-				for (int i = 0; i < HMAC_SHA1_SIZE; i++) {
-					snprintf(computed_hex + i * 2, 3, "%02x", hmac[i]);
-					snprintf(expected_hex + i * 2, 3, "%02x", expected_hmac[i]);
-				}
-				for (size_t i = 0; i < key_len && i < MAX_HMAC_KEY_LEN; i++)
-					snprintf(key_hex + i * 2, 3, "%02x", key[i]);
-				key_hex[key_len * 2] = '\0';
-				JLOG_WARN("HMAC-SHA1 DIAG: input_len=%zu key_len=%zu hdr=%02x%02x%02x%02x key=%s computed=%s expected=%s",
-				          pos - begin, key_len, begin[0], begin[1], begin[2], begin[3],
-				          key_hex, computed_hex, expected_hex);
 				JLOG_DEBUG("STUN message integrity SHA1 check failed");
 				return false;
 			}
