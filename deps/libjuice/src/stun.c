@@ -24,6 +24,28 @@
 #if !USE_NETTLE
 #include <openssl/hmac.h>
 #include <openssl/evp.h>
+#include <openssl/md5.h>
+
+#define hmac_sha1(msg, sz, key, ksz, dig) \
+	do { unsigned int _ml = 20; \
+	     HMAC(EVP_sha1(), (key), (int)(ksz), \
+	          (const unsigned char *)(msg), (sz), (unsigned char *)(dig), &_ml); \
+	} while (0)
+
+#define hmac_sha256(msg, sz, key, ksz, dig) \
+	do { unsigned int _ml = 32; \
+	     HMAC(EVP_sha256(), (key), (int)(ksz), \
+	          (const unsigned char *)(msg), (sz), (unsigned char *)(dig), &_ml); \
+	} while (0)
+
+#define hash_md5(msg, sz, dig) \
+	do { unsigned int _l = 16; EVP_Digest((msg), (sz), (unsigned char *)(dig), &_l, EVP_md5(), NULL); } while (0)
+
+#define hash_sha1(msg, sz, dig) \
+	do { unsigned int _l = 20; EVP_Digest((msg), (sz), (unsigned char *)(dig), &_l, EVP_sha1(), NULL); } while (0)
+
+#define hash_sha256(msg, sz, dig) \
+	do { unsigned int _l = 32; EVP_Digest((msg), (sz), (unsigned char *)(dig), &_l, EVP_sha256(), NULL); } while (0)
 #endif
 
 #define STUN_MAGIC 0x2112A442
