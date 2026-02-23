@@ -32,7 +32,20 @@ static void bcrypt_hmac(const wchar_t *algorithm, ULONG hash_size,
 }
 #endif
 
+#include <stdio.h>
+static int hmac_impl_logged = 0;
+
 void hmac_sha1(const void *message, size_t size, const void *key, size_t key_size, void *digest) {
+	if (!hmac_impl_logged) {
+		hmac_impl_logged = 1;
+#if USE_NETTLE
+		fprintf(stderr, "[HMAC-IMPL] Using Nettle\n");
+#elif defined(_WIN32)
+		fprintf(stderr, "[HMAC-IMPL] Using BCrypt\n");
+#else
+		fprintf(stderr, "[HMAC-IMPL] Using picohash\n");
+#endif
+	}
 #if USE_NETTLE
 	struct hmac_sha1_ctx ctx;
 	hmac_sha1_set_key(&ctx, key_size, key);
